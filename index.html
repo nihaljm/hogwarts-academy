@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hogwarts Academy</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #12121c; color: #eee; }
+  header { padding: 28px 16px; text-align: center; background: linear-gradient(135deg, #3b2a6e, #1b1b3a); }
+  header h1 { margin: 0 0 6px; font-size: 28px; }
+  header p { margin: 0; opacity: .7; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  section { background: #1c1c2b; border-radius: 12px; padding: 18px; }
+  h2 { margin: 0 0 12px; font-size: 18px; color: #d4af37; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  button { background: #3b2a6e; color: #fff; border: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  button:hover { background: #5238a3; }
+  button.active { background: #d4af37; color: #111; }
+  input, select { padding: 8px; border-radius: 8px; border: 1px solid #444; background: #12121c; color: #eee; font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .card { padding: 12px; border-radius: 10px; background: #12121c; border-left: 5px solid #888; }
+  .Gryffindor { border-color: #ae0001; } .Slytherin { border-color: #2a623d; }
+  .Ravenclaw { border-color: #222f5b; } .Hufflepuff { border-color: #f0c75e; }
+  .card small { opacity: .7; }
+  .msg { padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-size: 14px; }
+  .ok { background: #1e4d2b; } .err { background: #5c1f1f; } .info { background: #26304d; }
+  .log { font-family: monospace; font-size: 13px; background: #0c0c14; padding: 10px; border-radius: 8px; min-height: 40px; }
+  .log div { padding: 2px 0; }
+  .hit { color: #6fdc8c; } .miss { color: #ffb86b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Hogwarts Academy</h1>
+  <p>TP TypeScript — démonstration visuelle des 6 exercices</p>
+</header>
+
+<main>
+  <!-- Exercices 1 et 2 -->
+  <section>
+    <h2>Exercices 1 et 2 — Sorciers et filtre par maison</h2>
+    <div class="row">
+      <input id="wName" placeholder="Nom du sorcier">
+      <select id="wHouse"></select>
+      <button id="addWizardBtn">Ajouter</button>
+    </div>
+    <div class="row" id="filters"></div>
+    <div class="cards" id="wizardList"></div>
+  </section>
+
+  <!-- Exercice 3 -->
+  <section>
+    <h2>Exercice 3 — Événement spell-cast (Extract)</h2>
+    <div class="row">
+      <button id="castBtn">Lancer Expelliarmus</button>
+      <button id="levelBtn">Événement level-up (refusé)</button>
+    </div>
+    <div class="log" id="eventLog"></div>
+  </section>
+
+  <!-- Exercice 4 -->
+  <section>
+    <h2>Exercice 4 — Validation de la puissance d'un sort</h2>
+    <div class="row">
+      <input id="sName" placeholder="Nom du sort" value="Protego">
+      <input id="sPower" type="number" placeholder="Puissance" value="50">
+      <button id="addSpellBtn">Ajouter le sort</button>
+    </div>
+    <div id="spellMsg"></div>
+    <div class="cards" id="spellList"></div>
+  </section>
+
+  <!-- Exercice 5 -->
+  <section>
+    <h2>Exercice 5 — Décorateur Cache</h2>
+    <div class="row">
+      <input id="cBase" type="number" value="10">
+      <input id="cMult" type="number" value="3">
+      <button id="calcBtn">calculatePower(base, multiplicateur)</button>
+    </div>
+    <div class="log" id="cacheLog"></div>
+  </section>
+
+  <!-- Exercice 6 -->
+  <section>
+    <h2>Exercice 6 — Type Guard isHouse()</h2>
+    <div class="row">
+      <input id="hInput" value="Durmstrang">
+      <button id="checkBtn">Vérifier la maison</button>
+    </div>
+    <div id="guardMsg"></div>
+  </section>
+</main>
+
+<script>
+  // ----- Données et type guard -----
+  const HOUSES = ["Gryffindor", "Slytherin", "Ravenclaw", "Hufflepuff"];
+  function isHouse(value) {
+    return typeof value === "string" && HOUSES.includes(value);
+  }
+
+  const wizards = [];
+  let nextWizardId = 1;
+  function addWizard(data) {
+    const w = { ...data, id: nextWizardId++ };
+    wizards.push(w);
+    return w;
+  }
+  function findByHouse(house) {
+    return wizards.filter(w => w.house === house);
+  }
+  addWizard({ name: "Harry Potter", house: "Gryffindor" });
+  addWizard({ name: "Hermione Granger", house: "Gryffindor" });
+  addWizard({ name: "Draco Malfoy", house: "Slytherin" });
+  addWizard({ name: "Luna Lovegood", house: "Ravenclaw" });
+
+  const spells = [];
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // ----- Exercices 1 et 2 -----
+  let currentFilter = "Toutes";
+  HOUSES.forEach(h => $("wHouse").add(new Option(h, h)));
+
+  function renderFilters() {
+    $("filters").innerHTML = "";
+    ["Toutes", ...HOUSES].forEach(h => {
+      const b = document.createElement("button");
+      b.textContent = h;
+      if (h === currentFilter) b.className = "active";
+      b.onclick = () => { currentFilter = h; render(); };
+      $("filters").appendChild(b);
+    });
+  }
+  function renderWizards() {
+    const list = currentFilter === "Toutes" ? wizards : findByHouse(currentFilter);
+    $("wizardList").innerHTML = list.length
+      ? list.map(w => `<div class="card ${w.house}"><strong>${esc(w.name)}</strong><br><small>${w.house} — id ${w.id}</small></div>`).join("")
+      : "<em>Aucun sorcier dans cette maison.</em>";
+  }
+  function render() { renderFilters(); renderWizards(); }
+  $("addWizardBtn").onclick = () => {
+    const name = $("wName").value.trim();
+    if (!name) return;
+    addWizard({ name, house: $("wHouse").value });
+    $("wName").value = "";
+    render();
+  };
+  render();
+
+  // ----- Exercice 3 -----
+  function logEvent(text, cls) {
+    const d = document.createElement("div");
+    d.textContent = text;
+    if (cls) d.className = cls;
+    $("eventLog").appendChild(d);
+  }
+  function handleSpellCast(event) {
+    logEvent(`Wizard ${event.wizardId} cast ${event.spellName}`, "hit");
+  }
+  $("castBtn").onclick = () => handleSpellCast({ type: "spell-cast", wizardId: 1, spellName: "Expelliarmus" });
+  $("levelBtn").onclick = () => logEvent("handleSpellCast n'accepte que « spell-cast » : « level-up » est refusé par TypeScript.", "miss");
+
+  // ----- Exercice 4 -----
+  function validateSpellPower(spell) {
+    if (spell.power < 0) throw new Error("Spell power cannot be negative");
+  }
+  function renderSpells() {
+    $("spellList").innerHTML = spells.map(s =>
+      `<div class="card"><strong>${esc(s.name)}</strong><br><small>puissance ${s.power}</small></div>`).join("");
+  }
+  $("addSpellBtn").onclick = () => {
+    const spell = { id: 100 + spells.length + 2, name: $("sName").value.trim() || "Sans nom", power: Number($("sPower").value) };
+    try {
+      validateSpellPower(spell);
+      spells.push(spell);
+      $("spellMsg").innerHTML = `<div class="msg ok">Sort « ${esc(spell.name)} » ajouté.</div>`;
+      renderSpells();
+    } catch (e) {
+      $("spellMsg").innerHTML = `<div class="msg err">Erreur : ${esc(e.message)}</div>`;
+    }
+  };
+
+  // ----- Exercice 5 -----
+  const cache = new Map();
+  function calculatePower(base, mult) {
+    const key = JSON.stringify([base, mult]);
+    const line = document.createElement("div");
+    if (cache.has(key)) {
+      line.className = "hit";
+      line.textContent = `[CACHE HIT] calculatePower → ${cache.get(key)}`;
+      $("cacheLog").appendChild(line);
+      return;
+    }
+    const result = base * mult;
+    cache.set(key, result);
+    line.className = "miss";
+    line.textContent = `[CACHE MISS] Calculating... → ${result}`;
+    $("cacheLog").appendChild(line);
+  }
+  $("calcBtn").onclick = () => calculatePower(Number($("cBase").value), Number($("cMult").value));
+
+  // ----- Exercice 6 -----
+  $("checkBtn").onclick = () => {
+    const v = $("hInput").value;
+    $("guardMsg").innerHTML = isHouse(v)
+      ? `<div class="msg ok">isHouse("${esc(v)}") → true : maison valide.</div>`
+      : `<div class="msg err">isHouse("${esc(v)}") → false : « ${esc(v)} » n'est pas une maison de Poudlard.</div>`;
+  };
+</script>
+</body>
+</html>
